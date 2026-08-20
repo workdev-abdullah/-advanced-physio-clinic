@@ -1,0 +1,36 @@
+{
+  "name": "advanced-physio-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Advanced Physiotherapy Clinics",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "physiotherapy",
+    "booking",
+    "mern",
+    "express",
+    "slot-booking"
+  ],
+  "author": "You",
+  "license": "ISC",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "firebase-admin": "^13.6.0",
+    "jsonwebtoken": "^9.0.3",
+    "moment-timezone": "^0.6.0",
+    "mongoose": "^8.21.0",
+    "pdfkit": "^0.17.2",
+    "razorpay": "^2.9.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
