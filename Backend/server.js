@@ -84,14 +84,24 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      /\.ngrok-free\.dev$/, // Allow all ngrok subdomains dynamically
-    ],
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header
+      // (for example, some server-to-server requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error(`CORS blocked origin: ${origin}`)
+      );
+    },
     credentials: true,
   })
 );
-
 // =======================
 // STATIC FILES (ROBUST FOR PDF)
 // =======================
