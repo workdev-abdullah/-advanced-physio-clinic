@@ -64,6 +64,11 @@ import { unlockExpiredSlots } from "./jobs/unlockExpiredSlots.js";
 // =======================
 const app = express();
 
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://advanced-physio-frontend.onrender.com",
+];
 // =======================
 // WEBHOOK (RAW BODY ONLY)
 // =======================
@@ -82,11 +87,11 @@ app.post(
 app.use(express.json());
 app.use(cookieParser());
 
+
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests without an Origin header
-      // (for example, some server-to-server requests)
       if (!origin) {
         return callback(null, true);
       }
@@ -94,6 +99,8 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+
+      console.error("❌ CORS blocked origin:", origin);
 
       return callback(
         new Error(`CORS blocked origin: ${origin}`)
