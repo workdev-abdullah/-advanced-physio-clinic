@@ -65,10 +65,10 @@ import { unlockExpiredSlots } from "./jobs/unlockExpiredSlots.js";
 const app = express();
 
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   "http://localhost:5173",
   "https://advanced-physio-frontend.onrender.com",
-];
+]);
 // =======================
 // WEBHOOK (RAW BODY ONLY)
 // =======================
@@ -89,19 +89,46 @@ app.use(cookieParser());
 
 
 
+
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      console.log("🌐 CORS request origin:", origin);
+
+      // Allow requests without Origin
+      // e.g. server-to-server requests
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      console.error("❌ CORS blocked:", origin);
+
+      return callback(null, false);
+    },
+
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+
+    optionsSuccessStatus: 204,
   })
 );
-
-app.options("*", cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
 // =======================
 // STATIC FILES (ROBUST FOR PDF)
 // =======================
