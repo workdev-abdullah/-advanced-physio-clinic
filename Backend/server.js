@@ -20,7 +20,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config();
 
 // Debug (remove later)
 console.log("ENV CHECK:", {
@@ -133,9 +133,9 @@ const startServer = async () => {
     console.log("Slots generated for next 3 months");
 
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+    app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});
   } catch (err) {
     console.error("Server startup error:", err);
     process.exit(1);
