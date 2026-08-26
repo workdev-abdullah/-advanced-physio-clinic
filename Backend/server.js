@@ -88,27 +88,20 @@ app.use(express.json());
 app.use(cookieParser());
 
 
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests without an Origin header
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.error("❌ CORS blocked origin:", origin);
-
-      return callback(
-        new Error(`CORS blocked origin: ${origin}`)
-      );
-    },
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 // =======================
 // STATIC FILES (ROBUST FOR PDF)
 // =======================
