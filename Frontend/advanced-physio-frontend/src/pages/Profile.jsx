@@ -18,15 +18,29 @@ export default function Profile() {
   }, []);
 
   // Helper to normalize pdfUrl → root-relative path
-  const getPdfUrl = (pdfUrlFromServer) => {
-    if (!pdfUrlFromServer) return null;
+ const getPdfUrl = (pdfUrlFromServer) => {
+  if (!pdfUrlFromServer) return null;
 
-    let normalized = pdfUrlFromServer.replace(/^\/+/, "");
-    if (!normalized.startsWith("uploads/receipts/")) {
-      normalized = `uploads/receipts/${normalized}`;
-    }
-    return `/${normalized}`;
-  };
+  // Already an absolute URL
+  if (
+    pdfUrlFromServer.startsWith("http://") ||
+    pdfUrlFromServer.startsWith("https://")
+  ) {
+    return pdfUrlFromServer;
+  }
+
+  let normalized = pdfUrlFromServer.replace(/^\/+/, "");
+
+  if (!normalized.startsWith("uploads/receipts/")) {
+    normalized = `uploads/receipts/${normalized}`;
+  }
+
+  const backendUrl =
+    import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
+    "http://localhost:5000";
+
+  return `${backendUrl}/${normalized}`;
+};
 
   // Helper to extract filename
   const getPdfFilename = (pdfUrlFromServer) => {
