@@ -1,165 +1,320 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../api/api";
+
+const MAX_ATTEMPTS = 30;
+const POLL_INTERVAL = 1500;
 
 export default function Success() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
+
   const orderId = params.get("orderId");
 
-  const [status, setStatus] = useState("loading"); // "loading" | "ready" | "error" | "timeout"
-  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
-  const [actualPdfFilename, setActualPdfFilename] = useState("receipt.pdf");
-  const [bookingDetails, setBookingDetails] = useState(null); // Extra home visit info
+  const [status, setStatus] = useState("checking");
+  const [message, setMessage] = useState(
+    "Payment successful. Preparing your receipt..."
+  );
+
+  const attemptsRef = useRef(0);
+  const downloadedRef = useRef(false);
+
+  // ==================================================
+  // BUILD BACKEND PDF URL
+  // ==================================================
+
+  const getPdfUrl = (pdfUrl) => {
+    if (!pdfUrl) return null;
+
+    // Already absolute
+    if (
+      pdfUrl.startsWith("http://") ||
+      pdfUrl.startsWith("https://")
+    ) {
+      return pdfUrl;
+    }
+
+    const normalized = pdfUrl.replace(/^\/+/, "");
+
+    const backendBaseUrl =
+      import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
+      "http://localhost:5000";
+
+    return `${backendBaseUrl}/${normalized}`;
+  };
+
+  // ==================================================
+  // DOWNLOAD PDF
+  // ==================================================
+
+  const downloadReceipt = async (pdfUrl) => {
+    if (downloadedRef.current) return;
+
+    try {
+      downloadedRef.current = true;
+
+      setStatus("downloading");
+      setMessage("Receipt is ready. Downloading...");
+
+      const finalUrl = getPdfUrl(pdfUrl);
+
+      if (!finalUrl) {
+        throw new Error("Receipt URL missing");
+      }
+
+      console.log("📄 Receipt URL:", finalUrl);
+
+      // Fetch PDF as blob so cross-origin download works reliably
+      const response = await fetch(finalUrl);
+
+      if (!response.ok) {
+        throw new Error(
+          `Receipt download failed: ${response.status}`
+        );
+      }
+
+      const blob = await response.blob();
+
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const filename = `receipt-${orderId || Date.now()}.pdf`;
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      // Clean blob URL
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 3000);
+
+      console.log("✅ Receipt downloaded");
+
+      setStatus("success");
+      setMessage("Receipt downloaded successfully.");
+    } catch (error) {
+      console.error("❌ Receipt download error:", error);
+
+      downloadedRef.current = false;
+
+      setStatus("error");
+      setMessage(
+        "Receipt is ready, but automatic download failed. Please open it below."
+      );
+    }
+  };
+
+  // ==================================================
+  // CHECK RECEIPT STATUS
+  // ==================================================
 
   useEffect(() => {
     if (!orderId) {
       setStatus("error");
+      setMessage("Order ID is missing.");
       return;
     }
 
-    console.log("SUCCESS PAGE orderId =", orderId);
+    let cancelled = false;
+    let timer = null;
 
-    let pollCount = 0;
-    const maxPolls = 30; // ~60 seconds max wait
-
-    let interval;
-    const pollReceipt = async () => {
-      pollCount++;
+    const checkReceipt = async () => {
       try {
-        const res = await api.get(`/bookings/receipt/${orderId}`);
+        console.log(
+          `🔎 Checking receipt (${attemptsRef.current + 1}/${MAX_ATTEMPTS})`
+        );
 
-        if (res.data.ready && res.data.pdfUrl) {
-          let serverPdfPath = res.data.pdfUrl;
-          serverPdfPath = serverPdfPath.replace(/\.html$/i, "");
+        const response = await api.get(
+          `/payment/receipt-status/${orderId}`
+        );
 
-          let filename = serverPdfPath.split("/").pop();
-          if (!filename.endsWith(".pdf")) {
-            filename += ".pdf";
-          }
+        if (cancelled) return;
 
-          setActualPdfFilename(filename);
+        const data = response.data;
 
-          const fetchPath = serverPdfPath.startsWith("/") ? serverPdfPath : `/${serverPdfPath}`;
-          const pdfResponse = await fetch(fetchPath);
+        console.log("📄 Receipt status:", data);
 
-          if (pdfResponse.ok) {
-            const blob = await pdfResponse.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            setPdfBlobUrl(blobUrl);
-          }
-
-          // NEW: Capture extra home visit details if provided by backend
-          if (res.data.bookingDetails) {
-            setBookingDetails(res.data.bookingDetails);
-          }
-
-          setStatus("ready");
-          if (interval) clearInterval(interval);
-        } else if (pollCount >= maxPolls) {
-          setStatus("timeout");
-          if (interval) clearInterval(interval);
+        if (data?.ready && data?.pdfUrl) {
+          await downloadReceipt(data.pdfUrl);
+          return;
         }
-      } catch (err) {
-        console.error("Polling/fetch error:", err);
-        if (pollCount >= maxPolls) {
+
+        attemptsRef.current += 1;
+
+        if (attemptsRef.current >= MAX_ATTEMPTS) {
           setStatus("timeout");
-          if (interval) clearInterval(interval);
+          setMessage(
+            "Your booking is confirmed, but the receipt is taking longer than expected."
+          );
+          return;
         }
+
+        timer = setTimeout(checkReceipt, POLL_INTERVAL);
+      } catch (error) {
+        console.error(
+          "Receipt status check failed:",
+          error
+        );
+
+        attemptsRef.current += 1;
+
+        if (attemptsRef.current >= MAX_ATTEMPTS) {
+          setStatus("error");
+          setMessage(
+            "Booking is successful, but we could not retrieve the receipt yet."
+          );
+          return;
+        }
+
+        timer = setTimeout(checkReceipt, POLL_INTERVAL);
       }
     };
 
-    interval = setInterval(pollReceipt, 2000);
-    pollReceipt(); // Immediate first check
+    checkReceipt();
 
     return () => {
-      if (interval) clearInterval(interval);
-      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+      cancelled = true;
+
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
-  }, [orderId, pdfBlobUrl]);
+  }, [orderId]);
 
-  const handleDownload = () => {
-    if (!pdfBlobUrl) return;
-
-    const link = document.createElement("a");
-    link.href = pdfBlobUrl;
-    link.download = actualPdfFilename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  if (!orderId || status === "error") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600 text-xl font-semibold">
-        Order not found or error occurred
-      </div>
-    );
-  }
+  // ==================================================
+  // RENDER
+  // ==================================================
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
-      <h2 className="text-3xl font-bold text-green-700 mb-6">
-        Appointment Confirmed ✅
-      </h2>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900 px-4">
 
-      <p className="text-lg text-gray-700 mb-8 text-center">
-        Your physiotherapy appointment has been successfully booked.
-      </p>
+      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 text-center">
 
-      {status === "loading" && (
-        <p className="text-gray-600 animate-pulse text-xl">Preparing your receipt… (this may take 5-10 seconds)</p>
-      )}
-
-      {status === "timeout" && (
-        <p className="text-orange-600 text-lg text-center max-w-md">
-          Receipt is taking longer than expected. Please check your Profile page in a few minutes.
-        </p>
-      )}
-
-      {status === "ready" && pdfBlobUrl && (
-        <div className="flex flex-col items-center gap-8 w-full max-w-4xl">
-          {/* NEW: Home Visit Extra Details */}
-          {bookingDetails && bookingDetails.visitType === "HOME" && (
-            <div className="bg-purple-50 dark:bg-purple-900/30 rounded-2xl p-6 w-full shadow-lg">
-              <h3 className="text-xl font-semibold mb-4 text-purple-800 dark:text-purple-200">
-                Home Visit Details
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-lg">
-                <p><span className="font-medium">Distance from Clinic:</span> {bookingDetails.distanceKm?.toFixed(1) || "N/A"} km</p>
-                <p><span className="font-medium">Base Charge (first 4 km):</span> ₹500</p>
-                <p><span className="font-medium">Extra Km Charge:</span> ₹20 per km</p>
-                <p><span className="font-medium">Total Amount Paid:</span> ₹{bookingDetails.totalAmount || "N/A"}</p>
-              </div>
-              {bookingDetails.address && (
-                <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-                  Address: {bookingDetails.address.house}, {bookingDetails.address.area}, {bookingDetails.address.city} - {bookingDetails.address.pincode}
-                </p>
-              )}
+        {status === "checking" && (
+          <>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
-          )}
 
-          <button
-            onClick={handleDownload}
-            className="bg-green-600 text-white font-bold px-10 py-4 rounded-xl hover:bg-green-700 transition text-lg shadow-xl"
-          >
-            Download Receipt ({actualPdfFilename})
-          </button>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Payment Successful
+            </h1>
 
-          <div className="w-full">
-            <p className="text-lg font-semibold text-gray-700 mb-4 text-center">Receipt Preview:</p>
-            <embed
-              src={pdfBlobUrl}
-              type="application/pdf"
-              width="100%"
-              height="800px"
-              className="border-4 border-green-200 rounded-xl shadow-2xl"
-            />
-            <p className="text-sm text-gray-500 mt-4 text-center">
-              Scroll to view full receipt. If preview is blank, try the download button.
+            <p className="text-gray-600 dark:text-gray-400">
+              {message}
             </p>
-          </div>
-        </div>
-      )}
+
+            <p className="text-xs text-gray-400 mt-4">
+              Please wait while we generate your receipt...
+            </p>
+          </>
+        )}
+
+        {status === "downloading" && (
+          <>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Receipt Ready
+            </h1>
+
+            <p className="text-gray-600 dark:text-gray-400">
+              {message}
+            </p>
+          </>
+        )}
+
+        {status === "success" && (
+          <>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-3xl">
+              ✅
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Booking Confirmed
+            </h1>
+
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {message}
+            </p>
+
+            <button
+              onClick={() => navigate("/profile")}
+              className="
+                w-full py-3 rounded-xl
+                bg-green-600 text-white font-semibold
+                hover:bg-green-700 transition
+              "
+            >
+              Go to My Profile
+            </button>
+          </>
+        )}
+
+        {status === "timeout" && (
+          <>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-3xl">
+              ⏳
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Booking Confirmed
+            </h1>
+
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {message}
+            </p>
+
+            <button
+              onClick={() => navigate("/profile")}
+              className="
+                w-full py-3 rounded-xl
+                bg-blue-600 text-white font-semibold
+                hover:bg-blue-700 transition
+              "
+            >
+              View My Booking & Receipt
+            </button>
+          </>
+        )}
+
+        {status === "error" && (
+          <>
+            <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-3xl">
+              ⚠️
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Booking Completed
+            </h1>
+
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {message}
+            </p>
+
+            <button
+              onClick={() => navigate("/profile")}
+              className="
+                w-full py-3 rounded-xl
+                bg-blue-600 text-white font-semibold
+                hover:bg-blue-700 transition
+              "
+            >
+              Go to My Profile
+            </button>
+          </>
+        )}
+
+        <p className="text-xs text-gray-400 mt-6 break-all">
+          Order ID: {orderId || "N/A"}
+        </p>
+      </div>
     </div>
   );
 }
