@@ -1,17 +1,34 @@
 import express from "express";
+
 import {
   createOrder,
   razorpayWebhook,
+  getReceiptStatus,
 } from "../controllers/paymentController.js";
+
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // 🔒 LOGIN REQUIRED
-router.post("/create-order", authMiddleware, createOrder);
+router.post(
+  "/create-order",
+  authMiddleware,
+  createOrder
+);
 
-// ❌ webhook NEVER needs auth
-router.post("/webhook", express.raw({ type: "application/json" }),
-  razorpayWebhook);
+// ✅ CHECK RECEIPT STATUS
+router.get(
+  "/receipt-status/:orderId",
+  authMiddleware,
+  getReceiptStatus
+);
+
+// ❌ WEBHOOK NEVER NEEDS AUTH
+router.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  razorpayWebhook
+);
 
 export default router;
