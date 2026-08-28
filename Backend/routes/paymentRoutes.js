@@ -17,7 +17,7 @@ router.post(
   createOrder
 );
 
-// ✅ CHECK RECEIPT STATUS
+// 🔐 RECEIPT STATUS
 router.get(
   "/receipt-status/:orderId",
   authMiddleware,

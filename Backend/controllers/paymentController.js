@@ -207,3 +207,50 @@ export const razorpayWebhook = async (req, res) => {
     res.status(500).send("Webhook error");
   }
 };
+
+export const getReceiptStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({
+        ready: false,
+        message: "Order ID is required",
+      });
+    }
+
+    const payment = await Payment.findOne({
+      orderId,
+    }).populate("bookingId");
+
+    if (!payment) {
+      return res.json({
+        ready: false,
+      });
+    }
+
+    if (!payment.bookingId) {
+      return res.json({
+        ready: false,
+      });
+    }
+
+    if (!payment.bookingId.pdfUrl) {
+      return res.json({
+        ready: false,
+      });
+    }
+
+    return res.json({
+      ready: true,
+      pdfUrl: payment.bookingId.pdfUrl,
+    });
+  } catch (err) {
+    console.error("❌ Receipt status error:", err);
+
+    return res.status(500).json({
+      ready: false,
+      message: "Failed to check receipt status",
+    });
+  }
+};
