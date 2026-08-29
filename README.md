@@ -41,47 +41,6 @@ The project is structured as a separate React frontend and Node.js/Express backe
 
 ---
 
----
-
-## 🧪 Demo & Test Credentials
-
-The application can be tested using the following demo configuration.
-
-### 🔐 Admin Demo Access
-
-For testing the administrative dashboard:
-
-```text
-Phone Number: 6297116747
-OTP: 000000
-
-### 🌐 Recommended Test Flow
-
-```text
-Open Live Website
-      ↓
-Login with Demo/Test Account
-      ↓
-Select Clinic or Home Visit
-      ↓
-Choose an Available Slot
-      ↓
-Enter Patient Details
-      ↓
-Proceed to Razorpay Test Checkout
-      ↓
-Use the Razorpay Test Card
-      ↓
-Complete Test Payment
-      ↓
-Razorpay Webhook Verification
-      ↓
-Booking Confirmation
-      ↓
-PDF Receipt Generation
-      ↓
-View Booking in Profile
-
 ## Core Booking Workflow
 
 ### Clinic Appointment
