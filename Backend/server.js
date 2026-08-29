@@ -149,7 +149,12 @@ app.use("/uploads", (req, res, next) => {
 app.get("/", (req, res) => {
   res.send("Advanced Physiotherapy Clinics API is running");
 });
-
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  });
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/slots", slotRoutes);
 app.use("/api/payment", paymentRoutes);
