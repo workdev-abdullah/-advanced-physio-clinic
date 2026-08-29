@@ -1,49 +1,114 @@
 # Advanced Physiotherapy Clinic
 
-A full-stack physiotherapy clinic appointment and management platform built with the MERN stack, Firebase Phone Authentication, Razorpay, and automated PDF appointment receipts.
+A production-oriented full-stack physiotherapy clinic appointment and management platform built with the **MERN stack**, **Firebase Phone Authentication**, **Razorpay**, and automated **PDF appointment receipts**.
 
-## Live Application
+The platform is designed to handle the complete appointment lifecycle, from patient authentication and slot selection to payment verification, booking creation, receipt generation, and appointment history.
 
-**Patient Website:**  
+---
+
+## 🌐 Live Application
+
+### Patient Website
 https://advanced-physio-frontend.onrender.com
 
-**Backend API:**  
+### Backend API
 https://advanced-physio-clinic.onrender.com
 
-**GitHub Repository:**  
-https://github.com/workdev-abdullah/-advanced-physio-clinic
-
-**Backend Health Check:**  
+### Backend Health Check
 https://advanced-physio-clinic.onrender.com/health
 
+### GitHub Repository
+https://github.com/workdev-abdullah/-advanced-physio-clinic
+
 ---
 
-## Overview
+# 📌 Overview
 
-Advanced Physiotherapy Clinic is a production-oriented web application for managing physiotherapy appointments.
+Advanced Physiotherapy Clinic is a full-stack web application for managing physiotherapy appointments and related clinic operations.
 
-The platform supports:
+The application provides separate patient and administrative workflows and integrates external services for authentication, payments, database management, and appointment receipts.
 
-- Patient phone authentication using Firebase OTP
+### Core capabilities
+
+- Firebase phone-number authentication with OTP
+- Secure authenticated API requests
 - Clinic appointment scheduling
-- Slot availability and temporary slot locking
+- Automatic slot generation
+- Temporary slot locking
+- Double-booking protection
+- Friday clinic closure
+- Sunday evening closure rules
 - Home visit booking
 - GPS-based distance calculation
-- Home visit price calculation
+- Location accuracy validation
+- Home visit pricing
 - Razorpay online payments
-- Razorpay webhook verification
+- Razorpay webhook signature verification
+- Appointment creation after payment confirmation
+- Automated PDF receipt generation
 - Patient appointment history
-- Admin dashboard and booking management
-- Automated PDF appointment receipts
-- Responsive frontend for desktop and mobile devices
-
-The project is structured as a separate React frontend and Node.js/Express backend with MongoDB Atlas as the production database.
+- Receipt access from the patient profile
+- Administrative dashboard
+- Responsive desktop and mobile interface
 
 ---
 
-## Core Booking Workflow
+# 🧪 Demo & Test Credentials
 
-### Clinic Appointment
+The following information is provided strictly for testing the deployed application.
+
+## 🔐 Admin Test Account
+
+```text
+Phone Number: 6297116747
+OTP: 000000
+```
+
+> **Demo/Test Account Only:** The OTP `000000` is intended only for the configured Firebase test phone number. Real users authenticate through Firebase Phone Authentication and receive OTPs through the configured authentication flow.
+
+## 💳 Razorpay Test Payment
+
+Use **Razorpay Test Mode** when testing payments.
+
+| Network | Test Card Number | CVV | Expiry |
+|---|---|---|---|
+| Visa | `4100 2800 0000 1007` | Any random CVV | Any future date |
+
+> **Important:** The card above is a Razorpay sandbox/test card and should only be used in Test Mode. It is not a real payment card.
+
+## 🌐 Recommended Test Flow
+
+```text
+Open Live Website
+      ↓
+Login with Demo/Test Account
+      ↓
+Select Clinic or Home Visit
+      ↓
+Choose an Available Slot
+      ↓
+Enter Patient Details
+      ↓
+Proceed to Razorpay Test Checkout
+      ↓
+Use the Razorpay Test Card
+      ↓
+Complete Test Payment
+      ↓
+Razorpay Webhook Verification
+      ↓
+Booking Confirmation
+      ↓
+PDF Receipt Generation
+      ↓
+View Booking in Profile
+```
+
+---
+
+# 🔄 Core Booking Workflows
+
+## 🏥 Clinic Appointment Workflow
 
 ```text
 User Login
@@ -70,6 +135,8 @@ Razorpay Webhook
     ↓
 Webhook Signature Verification
     ↓
+Payment Record Updated
+    ↓
 Booking Creation
     ↓
 PDF Receipt Generation
@@ -79,7 +146,7 @@ Success Page
 Patient Profile
 ```
 
-### Home Visit
+## 🏠 Home Visit Workflow
 
 ```text
 User Login
@@ -106,6 +173,8 @@ Razorpay Webhook
     ↓
 Webhook Signature Verification
     ↓
+Payment Record Updated
+    ↓
 Home Visit Booking Creation
     ↓
 PDF Receipt Generation
@@ -117,46 +186,69 @@ Patient Profile
 
 ---
 
-## Authentication Flow
+# 🔐 Authentication Architecture
 
 The application uses Firebase Phone Authentication for OTP-based login.
 
 ```text
 Phone Number
-    ↓
+      ↓
 reCAPTCHA
-    ↓
+      ↓
 Firebase OTP
-    ↓
+      ↓
 OTP Verification
-    ↓
+      ↓
 Firebase ID Token
-    ↓
-Axios Request
-    ↓
+      ↓
+Axios API Request
+      ↓
 Express Backend
-    ↓
+      ↓
 Firebase Admin verifyIdToken()
-    ↓
-MongoDB User
-    ↓
+      ↓
+MongoDB User Lookup / Creation
+      ↓
 Authenticated Request
 ```
 
-Private API requests send the Firebase ID token using the `Authorization: Bearer <token>` header.
+Private API requests send the Firebase ID token using:
 
-The backend resolves the authenticated phone number to the application's MongoDB `User` record and uses that user's MongoDB `_id` for protected application data.
+```text
+Authorization: Bearer <token>
+```
+
+The backend uses the authenticated Firebase phone number to identify the corresponding MongoDB user.
+
+The MongoDB user's `_id` is then used to associate protected application data such as bookings and payments with the authenticated patient.
 
 ---
 
-## Payment Flow
+# 🛡️ API Authentication & Authorization
 
-Razorpay handles online appointment payments.
+Protected application operations use backend authentication middleware.
+
+The authenticated user identity is used for operations such as:
+
+- Creating protected payment orders
+- Locking appointment slots
+- Creating home visit payment orders
+- Retrieving patient bookings
+- Accessing protected profile information
+- Administrative access according to the application's role logic
+
+The application avoids relying solely on user-supplied identifiers for protected patient data.
+
+---
+
+# 💳 Payment Architecture
+
+Razorpay is used for online appointment payments.
 
 ```text
 Frontend
     ↓
-Backend creates order
+Backend Creates Razorpay Order
     ↓
 Razorpay Checkout
     ↓
@@ -173,19 +265,47 @@ Booking Created
 PDF Receipt Generated
 ```
 
-### Production Webhook
+## Production Webhook
 
 ```text
 https://advanced-physio-clinic.onrender.com/api/payment/webhook
 ```
 
-The webhook is intentionally not protected by application authentication because it is called by Razorpay.
+The webhook endpoint is intentionally not protected by application authentication because the request originates from Razorpay.
 
 ---
 
-## Appointment Scheduling
+# 🔔 Razorpay Webhook Verification
 
-The scheduling system includes:
+The backend validates webhook authenticity using:
+
+```text
+RAZORPAY_WEBHOOK_SECRET
+```
+
+The webhook route receives the raw request body so the HMAC signature can be calculated against the original payload.
+
+The payment-capture event is then used to complete the payment and booking workflow.
+
+```text
+Razorpay Event
+      ↓
+Raw Request Body
+      ↓
+HMAC-SHA256 Verification
+      ↓
+Valid Signature
+      ↓
+Process Payment
+      ↓
+Create Booking
+```
+
+---
+
+# 📅 Appointment Scheduling
+
+The scheduling system supports:
 
 - Automatic slot generation
 - 45-minute appointment sessions
@@ -198,7 +318,7 @@ The scheduling system includes:
 - Friday clinic closure
 - Sunday evening closure rules
 
-### Slot Lifecycle
+## Slot Lifecycle
 
 ```text
 AVAILABLE
@@ -210,7 +330,7 @@ Payment Successful
 BOOKED
 ```
 
-If a lock expires before completion:
+If a slot lock expires before completion:
 
 ```text
 LOCKED
@@ -222,28 +342,78 @@ AVAILABLE
 
 ---
 
-## Home Visit System
+# 🔒 Slot Locking & Double-Booking Protection
 
-Home visits use the patient's GPS location and the clinic's configured coordinates.
+The application temporarily locks an available slot before the patient completes the payment process.
 
-The workflow validates:
+```text
+Patient A
+    ↓
+Select Slot
+    ↓
+Slot LOCKED
+    ↓
+Payment
+    ↓
+BOOKED
+```
 
-- Latitude and longitude
+At the same time:
+
+```text
+Patient B
+    ↓
+Attempts Same Slot
+    ↓
+Slot Already Locked
+    ↓
+Booking Prevented
+```
+
+This helps protect appointment availability when multiple users attempt to book the same slot.
+
+---
+
+# 🏠 Home Visit System
+
+The home visit workflow uses the patient's GPS location and the clinic's configured coordinates.
+
+The system validates:
+
+- Latitude
+- Longitude
 - Location accuracy
 - Distance from the clinic
 - Maximum supported distance
 - Calculated visit price
 - Patient address
 
-The clinic configuration also stores home visit pricing parameters.
+The home visit configuration is stored in the clinic configuration data.
 
 ---
 
-## PDF Receipt System
+# 📍 Distance & Home Visit Pricing
 
-After successful payment and webhook verification, the backend creates an appointment receipt using PDFKit.
+The system calculates the distance between the configured clinic location and the patient's current GPS coordinates.
 
-The receipt includes the available booking information such as:
+Current configured pricing:
+
+```text
+Base Charge: ₹500
+Free Distance: 4 km
+Additional Rate: ₹20/km
+Maximum Home Visit Distance: 300 km
+```
+
+The server validates the distance and calculated payment amount before creating a Razorpay order.
+
+---
+
+# 🧾 PDF Receipt System
+
+After successful payment and webhook verification, the backend generates an appointment receipt using PDFKit.
+
+The receipt can include:
 
 - Booking ID
 - Patient name
@@ -256,77 +426,95 @@ The receipt includes the available booking information such as:
 - Payment status
 - Home visit address when applicable
 - Home visit distance when applicable
-- Home visit pricing information when applicable
+- Home visit pricing details when applicable
 
-Appointment dates and times are formatted for the `Asia/Kolkata` timezone.
+Appointment dates and times are formatted for:
+
+```text
+Asia/Kolkata
+```
+
+The generated receipt path is associated with the booking so it can be accessed from the patient's profile.
 
 ---
 
-## Patient Profile
+# 👤 Patient Profile
 
 Authenticated patients can view their appointment history.
 
-The profile uses the authenticated MongoDB user ID to retrieve that user's bookings.
+The profile uses the authenticated MongoDB user ID to retrieve bookings belonging to that patient.
 
-For each booking, the profile can display appointment details and the available receipt link.
+Booking information may include:
+
+- Appointment date
+- Appointment time
+- Visit type
+- Patient details
+- Booking status
+- Payment status
+- Home visit information
+- Receipt access
 
 ---
 
-## Admin Dashboard
+# 👨‍💼 Admin Dashboard
 
-The admin area provides visibility into clinic operations, including:
+The administrative area provides visibility into clinic operations.
 
+Administrative functionality includes:
+
+- Admin authentication
 - Appointment bookings
-- Patient details
+- Patient information
 - Booking status
 - Payment status
 - Slot information
 - Home visit bookings
 
-Access to protected administrative functionality is controlled by the application's authentication and role logic.
+Administrative features are protected using the application's authentication and role logic.
 
 ---
 
-## Architecture
+# 🏗️ System Architecture
 
 ```text
-                    ┌─────────────────────────┐
-                    │     React Frontend      │
-                    │       Render            │
-                    └────────────┬────────────┘
-                                 │
-                                 │ HTTPS / REST API
-                                 ▼
-                    ┌─────────────────────────┐
-                    │ Node.js + Express API   │
-                    │        Render           │
-                    └──────┬──────┬───────────┘
-                           │      │
-                 ┌─────────┘      └─────────────┐
-                 ▼                              ▼
-        ┌──────────────────┐          ┌──────────────────┐
-        │  MongoDB Atlas   │          │     Razorpay     │
-        │   Application DB │          │ Payment Gateway  │
-        └──────────────────┘          └────────┬─────────┘
-                                               │
-                                               │ Webhook
-                                               ▼
-                                      ┌──────────────────┐
-                                      │ Express Webhook  │
-                                      │ Signature Check   │
-                                      └──────────────────┘
+                         ┌──────────────────────────┐
+                         │      React Frontend      │
+                         │    Render Static Site    │
+                         └────────────┬─────────────┘
+                                      │
+                                      │ HTTPS / REST API
+                                      ▼
+                         ┌──────────────────────────┐
+                         │   Node.js + Express API  │
+                         │      Render Web Service  │
+                         └───────┬─────────┬────────┘
+                                 │         │
+                    ┌────────────┘         └──────────────┐
+                    ▼                                     ▼
+          ┌──────────────────┐                  ┌──────────────────┐
+          │  MongoDB Atlas   │                  │     Razorpay     │
+          │   Application DB │                  │ Payment Gateway  │
+          └──────────────────┘                  └────────┬─────────┘
+                                                         │
+                                                         │ Webhook
+                                                         ▼
+                                               ┌────────────────────┐
+                                               │ Express Webhook API│
+                                               │ Signature Validation│
+                                               └────────────────────┘
 
-        ┌──────────────────┐
-        │ Firebase Auth    │
-        │ Phone OTP        │
-        └──────────────────┘
+          ┌──────────────────┐
+          │  Firebase Auth   │
+          │   Phone OTP      │
+          └──────────────────┘
 ```
 
 ---
 
-## Technology Stack
+# 🛠️ Technology Stack
 
-### Frontend
+## Frontend
 
 - React.js
 - React Router
@@ -335,7 +523,7 @@ Access to protected administrative functionality is controlled by the applicatio
 - Firebase Authentication
 - Vite
 
-### Backend
+## Backend
 
 - Node.js
 - Express.js
@@ -343,16 +531,24 @@ Access to protected administrative functionality is controlled by the applicatio
 - Firebase Admin SDK
 - Razorpay
 - PDFKit
-- Axios
 - CORS
 - Cookie Parser
 - dotenv
 
-### Database
+## Database
 
 - MongoDB Atlas
 
-### Deployment
+## Authentication
+
+- Firebase Phone Authentication
+- Firebase Admin SDK
+
+## Payment Gateway
+
+- Razorpay
+
+## Deployment
 
 - Render Static Site
 - Render Web Service
@@ -360,7 +556,7 @@ Access to protected administrative functionality is controlled by the applicatio
 
 ---
 
-## Project Structure
+# 📁 Project Structure
 
 ```text
 -advanced-physio-clinic/
@@ -391,17 +587,17 @@ Access to protected administrative functionality is controlled by the applicatio
 
 ---
 
-## Database Collections
+# 🗃️ Database Collections
 
-The application uses MongoDB collections associated with the Mongoose models used by the backend.
+The application uses MongoDB collections associated with the backend Mongoose models.
 
-### Users
+## Users
 
 Stores application user information and role data.
 
-### Bookings
+## Bookings
 
-Stores:
+Stores information such as:
 
 - User reference
 - Booking ID
@@ -413,9 +609,9 @@ Stores:
 - Home visit information
 - Receipt URL
 
-### Payments
+## Payments
 
-Stores:
+Stores information such as:
 
 - Razorpay order ID
 - Payment ID
@@ -424,13 +620,18 @@ Stores:
 - User reference
 - Booking reference
 
-### Slots
+## Slots
 
-Stores appointment availability and slot locking information.
+Stores:
 
-### Clinic Config
+- Appointment availability
+- Slot status
+- Lock information
+- Appointment time information
 
-Stores clinic scheduling and home visit configuration such as:
+## Clinic Config
+
+Stores configuration such as:
 
 - Working hours
 - Clinic details
@@ -439,15 +640,15 @@ Stores clinic scheduling and home visit configuration such as:
 - Free distance
 - Per-kilometre rate
 - Maximum home visit distance
-- Weekly closing configuration
+- Weekly closure configuration
 
 ---
 
-## Environment Variables
+# 🔑 Environment Variables
 
-Environment variables are intentionally not included in the repository.
+Environment files containing secrets are intentionally excluded from the repository.
 
-### Backend
+## Backend
 
 Create:
 
@@ -466,14 +667,14 @@ JWT_SECRET=your_jwt_secret
 
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret
 
 FIREBASE_PROJECT_ID=your_firebase_project_id
 FIREBASE_CLIENT_EMAIL=your_firebase_client_email
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
 ```
 
-### Frontend
+## Frontend
 
 Create:
 
@@ -481,27 +682,27 @@ Create:
 Frontend/advanced-physio-frontend/.env
 ```
 
-Local example:
+Local:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 VITE_BACKEND_URL=http://localhost:5000
 ```
 
-Production example:
+Production:
 
 ```env
 VITE_API_URL=https://advanced-physio-clinic.onrender.com/api
 VITE_BACKEND_URL=https://advanced-physio-clinic.onrender.com
 ```
 
-Never commit actual `.env` files or secret credentials.
+> Never commit actual `.env` files or production secrets to GitHub.
 
 ---
 
-## Local Development
+# 💻 Local Development
 
-### Backend
+## Backend
 
 ```bash
 cd Backend
@@ -521,7 +722,7 @@ Health endpoint:
 http://localhost:5000/health
 ```
 
-### Frontend
+## Frontend
 
 Open another terminal:
 
@@ -539,35 +740,42 @@ http://localhost:5173
 
 ---
 
-## Production Deployment
+# 🚀 Production Deployment
 
-### Frontend on Render
+## Frontend — Render Static Site
+
+### Root Directory
 
 ```text
-Root Directory:
 Frontend/advanced-physio-frontend
 ```
 
+### Build Command
+
 ```text
-Build Command:
 npm install && npm run build
 ```
 
+### Publish Directory
+
 ```text
-Publish Directory:
 dist
 ```
 
-Production environment variables:
+### Production Environment Variables
 
 ```text
 VITE_API_URL=https://advanced-physio-clinic.onrender.com/api
 VITE_BACKEND_URL=https://advanced-physio-clinic.onrender.com
 ```
 
-### SPA Rewrite
+---
 
-The frontend uses a rewrite so React Router routes work on direct navigation:
+# 🔗 React Router Deployment
+
+The frontend uses React Router.
+
+The Render Static Site requires an SPA rewrite:
 
 ```text
 Source:
@@ -580,7 +788,7 @@ Action:
  Rewrite
 ```
 
-This supports routes such as:
+This allows direct navigation to routes such as:
 
 ```text
 /success
@@ -591,47 +799,51 @@ This supports routes such as:
 
 ---
 
-## Backend Deployment on Render
+# ⚙️ Backend — Render Web Service
+
+### Root Directory
 
 ```text
-Root Directory:
 Backend
 ```
 
+### Build Command
+
 ```text
-Build Command:
 npm install
 ```
 
+### Start Command
+
 ```text
-Start Command:
 npm start
 ```
 
-The backend connects to MongoDB Atlas using `MONGO_URI`.
+The backend connects to MongoDB Atlas using the configured `MONGO_URI`.
 
 ---
 
-## Production Configuration Checklist
+# 🌐 Production Configuration Checklist
 
-Before considering the deployment complete, verify:
+Before using the deployed application, verify:
 
 ```text
-[ ] Frontend production API URL is configured
-[ ] Backend environment variables are configured
-[ ] Firebase production domain is authorized
-[ ] MongoDB Atlas network access allows the backend
-[ ] Razorpay production/test keys match the selected mode
-[ ] Razorpay webhook URL is configured
-[ ] Razorpay webhook secret matches RAZORPAY_WEBHOOK_SECRET
-[ ] Frontend CORS origin is allowed by the backend
-[ ] React Router rewrite is configured
+[ ] Frontend production API URL configured
+[ ] Backend environment variables configured
+[ ] Firebase production domain authorized
+[ ] MongoDB Atlas network access configured
+[ ] Razorpay key mode matches the selected environment
+[ ] Razorpay webhook URL configured
+[ ] Razorpay webhook secret configured
+[ ] Backend CORS allows the production frontend
+[ ] React Router rewrite configured
 [ ] Backend /health endpoint responds successfully
+[ ] ClinicConfig data exists in production MongoDB
 ```
 
 ---
 
-## Health Check
+# 🩺 Backend Health Check
 
 The backend exposes:
 
@@ -645,36 +857,152 @@ Production:
 https://advanced-physio-clinic.onrender.com/health
 ```
 
-This endpoint can be used for monitoring and service health checks.
+The endpoint can be used for:
+
+- Service health checks
+- Monitoring
+- Backend availability testing
 
 ---
 
-## Render Free Tier Considerations
+# ⚡ Render Free Tier Considerations
 
-The current backend can run on Render's Free web service tier.
+The backend can run on Render's Free web service tier.
 
-Free web services can spin down after a period of inactivity, which may make the first request after an idle period slower.
+Free services may spin down after inactivity, which can make the first request after an idle period slower.
 
-To improve resilience, the frontend/backend implementation includes:
+The application reduces the impact through:
 
 - API request timeouts
 - Retry handling
 - Slot loading error handling
-- Backend health endpoint
+- Backend health checks
+- External health monitoring when configured
 
-An external monitoring service may periodically call:
+An external monitoring service may periodically request:
 
 ```text
 https://advanced-physio-clinic.onrender.com/health
 ```
 
-However, this is not a guaranteed always-on architecture. A continuously available paid service is more appropriate for a production system with time-sensitive background processing.
+However, external polling should not be considered a guaranteed always-on architecture.
+
+For a continuously available production system with time-sensitive background processing, an always-on backend is more reliable.
 
 ---
 
-## Git Workflow
+# 🧪 Testing Checklist
 
-Recommended development workflow:
+## Authentication
+
+```text
+[ ] Phone number validation
+[ ] reCAPTCHA
+[ ] OTP delivery
+[ ] OTP verification
+[ ] Firebase ID token generation
+[ ] Backend authentication
+```
+
+## Clinic Booking
+
+```text
+[ ] Slot loading
+[ ] Date selection
+[ ] Friday closure
+[ ] Past slot handling
+[ ] Slot locking
+[ ] Patient details
+[ ] Razorpay order creation
+[ ] Test payment
+[ ] Webhook delivery
+[ ] Webhook signature verification
+[ ] Booking creation
+[ ] PDF generation
+[ ] Profile booking visibility
+[ ] Receipt access
+```
+
+## Home Visit
+
+```text
+[ ] GPS permission
+[ ] Location accuracy validation
+[ ] Distance calculation
+[ ] Home visit price calculation
+[ ] Clinic configuration
+[ ] Address handling
+[ ] Razorpay order creation
+[ ] Test payment
+[ ] Webhook delivery
+[ ] Webhook signature verification
+[ ] Booking creation
+[ ] Profile visibility
+[ ] Receipt generation
+```
+
+## Admin
+
+```text
+[ ] Admin authentication
+[ ] Dashboard access
+[ ] Booking visibility
+[ ] Payment visibility
+[ ] Slot visibility
+[ ] Home visit visibility
+```
+
+---
+
+# 🔐 Security Practices
+
+The application uses:
+
+- Firebase ID token verification
+- Protected private routes
+- MongoDB user references for application identity
+- Server-controlled payment amounts
+- Razorpay webhook signature verification
+- Environment variables for secrets
+- CORS configuration
+- Server-side validation
+- Role-based administrative access
+
+Never commit:
+
+```text
+.env
+serviceAccountKey.json
+Firebase private keys
+MongoDB credentials
+JWT secrets
+Razorpay API secrets
+Razorpay webhook secrets
+```
+
+Also avoid logging sensitive authentication tokens or private credentials in production.
+
+---
+
+# 💾 Receipt Storage
+
+The current receipt generation flow creates PDF files under:
+
+```text
+Backend/uploads/receipts/
+```
+
+The current application flow can serve those generated receipts through the backend.
+
+For long-term production use, generated receipts should be moved to persistent object storage and the resulting permanent HTTPS URL should be saved in:
+
+```text
+Booking.pdfUrl
+```
+
+---
+
+# 🔀 Recommended Git Workflow
 
 ```text
 Feature / Bug
@@ -706,7 +1034,7 @@ Example:
 git checkout -b feat/home-visit-improvements
 ```
 
-Then:
+After development:
 
 ```bash
 git add .
@@ -714,13 +1042,13 @@ git commit -m "feat: improve home visit booking"
 git push origin feat/home-visit-improvements
 ```
 
-After review, merge the branch into `main`.
+Then create a Pull Request and merge into `main` after review.
 
 ---
 
-## Commit Convention
+# 📝 Commit Convention
 
-Recommended prefixes:
+Recommended commit prefixes:
 
 ```text
 feat:
@@ -740,119 +1068,49 @@ fix: correct receipt timezone
 fix: associate home visit with patient
 fix: improve slot loading retry
 feat: add Razorpay webhook verification
-docs: update project documentation
+docs: improve project README
 chore: configure production environment
 ```
 
 ---
 
-## Security Practices
+# 📈 Project Highlights
 
-The project uses several security measures:
-
-- Firebase ID token verification
-- Protected private routes
-- MongoDB user references for application identity
-- Server-controlled payment amount
-- Razorpay webhook signature verification
-- Environment variables for secrets
-- CORS configuration
-- Server-side validation
-- Role-based administrative access
-
-Never commit:
+This project demonstrates practical implementation of:
 
 ```text
-.env
-serviceAccountKey.json
-Firebase private keys
-MongoDB credentials
-JWT secrets
-Razorpay API secrets
-Razorpay webhook secrets
+React Frontend
+      ↓
+REST API Development
+      ↓
+Authentication
+      ↓
+Database Management
+      ↓
+Appointment Scheduling
+      ↓
+Slot Locking
+      ↓
+GPS-Based Home Visit
+      ↓
+Dynamic Pricing
+      ↓
+Payment Processing
+      ↓
+Webhook Security
+      ↓
+PDF Receipt Generation
+      ↓
+Cloud Deployment
 ```
+
+The application goes beyond basic CRUD functionality by implementing a complete appointment, payment, home visit, and receipt workflow.
 
 ---
 
-## Current Receipt Storage
+# 🚧 Future Improvements
 
-The current receipt generation flow creates PDF files under:
-
-```text
-Backend/uploads/receipts/
-```
-
-This works with the current application flow, but standard Render filesystem storage is not intended to be permanent file storage.
-
-A future production improvement is to move generated receipts to persistent object storage and save the resulting HTTPS URL in `Booking.pdfUrl`.
-
----
-
-## Testing Checklist
-
-### Authentication
-
-```text
-[ ] Phone number validation
-[ ] reCAPTCHA
-[ ] OTP delivery
-[ ] OTP verification
-[ ] Firebase ID token generation
-[ ] Backend authentication
-```
-
-### Clinic Booking
-
-```text
-[ ] Slot loading
-[ ] Date selection
-[ ] Friday closure
-[ ] Past slot handling
-[ ] Slot locking
-[ ] Patient details
-[ ] Razorpay order creation
-[ ] Payment
-[ ] Webhook delivery
-[ ] Webhook signature verification
-[ ] Booking creation
-[ ] PDF generation
-[ ] Profile booking visibility
-[ ] Receipt access
-```
-
-### Home Visit
-
-```text
-[ ] GPS permission
-[ ] Location accuracy validation
-[ ] Distance calculation
-[ ] Home visit price calculation
-[ ] Clinic configuration
-[ ] Address handling
-[ ] Razorpay order creation
-[ ] Payment
-[ ] Webhook delivery
-[ ] Booking creation
-[ ] Profile visibility
-[ ] Receipt generation
-```
-
-### Admin
-
-```text
-[ ] Admin authentication
-[ ] Dashboard access
-[ ] Booking visibility
-[ ] Payment visibility
-[ ] Slot visibility
-[ ] Home visit visibility
-```
-
----
-
-## Future Improvements
-
-Planned or potential improvements include:
+Potential future improvements include:
 
 - Persistent cloud receipt storage
 - Email appointment confirmations
@@ -862,45 +1120,45 @@ Planned or potential improvements include:
 - Doctor availability management
 - Advanced analytics
 - Automated backups
-- API documentation with Swagger/OpenAPI
-- Automated unit and integration tests
-- CI/CD workflow
+- Swagger/OpenAPI documentation
+- Automated unit and integration testing
+- CI/CD pipeline
 - Improved audit logging
 
 ---
 
-## Developer
+# 👨‍💻 Developer
 
 **Abdullah**  
 MERN Stack Developer
 
-GitHub:  
+**GitHub:**  
 https://github.com/workdev-abdullah
 
-LinkedIn:  
+**LinkedIn:**  
 https://linkedin.com/in/abdullah-workdev
 
-Email:  
+**Email:**  
 workdev.abdullah@gmail.com
 
 ---
 
-## Project Purpose
+# 📄 Project Purpose
 
-This project demonstrates the practical implementation of a real-world full-stack business workflow involving:
+This project demonstrates the practical development and deployment of a real-world full-stack business application involving:
 
 ```text
-React Frontend
+Authentication
       ↓
 REST APIs
-      ↓
-Authentication
       ↓
 Database Management
       ↓
 Appointment Scheduling
       ↓
 Concurrency / Slot Locking
+      ↓
+Location-Based Home Visits
       ↓
 Payment Processing
       ↓
@@ -911,4 +1169,4 @@ PDF Generation
 Cloud Deployment
 ```
 
-It is designed as a complete clinic appointment platform rather than a basic CRUD application.
+The architecture separates responsibilities across the frontend, backend, authentication provider, database, and payment gateway to keep the application maintainable and extensible.
