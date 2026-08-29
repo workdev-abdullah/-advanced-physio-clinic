@@ -40,6 +40,29 @@ The platform supports:
 The project is structured as a separate React frontend and Node.js/Express backend with MongoDB Atlas as the production database.
 
 ---
+Open Live Website
+      ↓
+Login with Demo/Test Account
+      ↓
+Select Clinic or Home Visit
+      ↓
+Choose an Available Slot
+      ↓
+Enter Patient Details
+      ↓
+Proceed to Razorpay Test Checkout
+      ↓
+Use the Razorpay Test Card
+      ↓
+Complete Test Payment
+      ↓
+Razorpay Webhook Verification
+      ↓
+Booking Confirmation
+      ↓
+PDF Receipt Generation
+      ↓
+View Booking in Profile
 
 ## Core Booking Workflow
 
