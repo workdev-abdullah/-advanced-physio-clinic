@@ -55,6 +55,9 @@ For testing the administrative dashboard:
 Phone Number: 6297116747
 OTP: 000000
 
+### 🌐 Recommended Test Flow
+
+```text
 Open Live Website
       ↓
 Login with Demo/Test Account
