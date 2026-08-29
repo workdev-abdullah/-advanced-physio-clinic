@@ -40,6 +40,21 @@ The platform supports:
 The project is structured as a separate React frontend and Node.js/Express backend with MongoDB Atlas as the production database.
 
 ---
+
+---
+
+## 🧪 Demo & Test Credentials
+
+The application can be tested using the following demo configuration.
+
+### 🔐 Admin Demo Access
+
+For testing the administrative dashboard:
+
+```text
+Phone Number: 6297116747
+OTP: 000000
+
 Open Live Website
       ↓
 Login with Demo/Test Account
